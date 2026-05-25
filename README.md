@@ -23,7 +23,7 @@ AI-powered bug reporting and operations triage. The app combines a JWT-protected
 | Auth | Email/password, OTP challenge, JWT bearer token |
 | Email | SMTP via `aiosmtplib` |
 | Frontend | React 19, TanStack Start, Vite, Tailwind CSS |
-| Deployment | Docker Compose, Nginx frontend container |
+| Deployment | Docker Compose, Vite frontend container for localhost use |
 
 ## Requirements Compliance
 
@@ -68,8 +68,22 @@ docker compose up --build
 | API docs | http://localhost:8000/docs |
 | MongoDB | mongodb://localhost:27017 |
 
-The Docker setup reads the root `.env`, starts MongoDB, builds the FastAPI backend, and serves the frontend through Nginx.
+The Docker setup reads the root `.env`, starts MongoDB, builds the FastAPI backend, and runs the Vite frontend server for localhost use.
 The backend image creates its own virtual environment at `/opt/venv` and runs the API from that environment.
+
+If the default ports are already in use, override the host ports before starting Compose:
+
+```cmd
+set MONGODB_HOST_PORT=27018
+set API_HOST_PORT=8002
+set FRONTEND_HOST_PORT=3001
+set DOCKER_PUBLIC_API_BASE=http://localhost:8002
+set DOCKER_APP_PUBLIC_URL=http://localhost:3001
+set DOCKER_CORS_ORIGINS=http://localhost:3001,http://127.0.0.1:3001
+docker compose up --build -d
+```
+
+With these overrides, connect MongoDB Compass to `mongodb://localhost:27018/triage`.
 
 ### Admin sign-in
 
