@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.git
+.lovable
+.pytest_cache
+.tanstack
+.wrangler
+.wrangler-config
+backend/.venv
+backend/__pycache__
+backend/**/__pycache__
+dist
+frontend-dev*.log
+node_modules
+*.log
