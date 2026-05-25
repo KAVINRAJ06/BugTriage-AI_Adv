@@ -4,10 +4,27 @@ import { toast } from "sonner";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { api, refreshUser, setToken } from "@/lib/api";
 
-export const Route = createFileRoute("/login")({ component: Login });
+export const Route = createFileRoute("/login")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    returnTo: typeof s.returnTo === "string" ? s.returnTo : "",
+  }),
+  component: Login,
+});
+
+function safeReturnTo(value: string) {
+  return value.startsWith("/") && !value.startsWith("//") ? value : "";
+}
+
+function ticketFromReportLink(value: string) {
+  const safe = safeReturnTo(value);
+  if (!safe) return "";
+  const params = new URLSearchParams(safe.split("?")[1] ?? "");
+  return params.get("ticket") ?? "";
+}
 
 function Login() {
   const nav = useNavigate();
+  const { returnTo } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,12 +41,17 @@ function Login() {
         setToken(result.access_token);
         await refreshUser();
         toast.success("Signed in");
-        nav({ to: "/admin" });
+        const ticket = ticketFromReportLink(returnTo);
+        if (ticket) {
+          nav({ to: "/admin/$id", params: { id: ticket } });
+        } else {
+          nav({ to: "/admin" });
+        }
         return;
       }
       if (result.flow === "otp" && result.challenge_token) {
         toast.success("OTP sent to your email");
-        nav({ to: "/verify-otp", search: { email, challenge: result.challenge_token } });
+        nav({ to: "/verify-otp", search: { email, challenge: result.challenge_token, returnTo: safeReturnTo(returnTo) } });
       }
     } catch (err: any) {
       toast.error(err.message ?? "Sign in failed");

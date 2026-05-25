@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import quote
 
 from app.core.config import settings
 from app.services.email import EmailDeliveryError, send_email
@@ -7,7 +8,9 @@ logger = logging.getLogger(__name__)
 
 
 def _read_only_ticket_link(ticket_id: str) -> str:
-    return f"{settings.app_public_url.rstrip('/')}/report?ticket={ticket_id}"
+    report_path = f"/report?ticket={quote(ticket_id, safe='')}"
+    return_to = quote(report_path, safe="")
+    return f"{settings.app_public_url.rstrip('/')}/login?returnTo={return_to}"
 
 
 async def notify_ticket_created(

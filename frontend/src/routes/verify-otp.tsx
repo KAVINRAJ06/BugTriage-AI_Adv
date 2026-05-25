@@ -9,12 +9,24 @@ export const Route = createFileRoute("/verify-otp")({
   validateSearch: (s: Record<string, unknown>) => ({
     email: String(s.email ?? ""),
     challenge: String(s.challenge ?? ""),
+    returnTo: typeof s.returnTo === "string" ? s.returnTo : "",
   }),
   component: VerifyOtp,
 });
 
+function safeReturnTo(value: string) {
+  return value.startsWith("/") && !value.startsWith("//") ? value : "";
+}
+
+function ticketFromReportLink(value: string) {
+  const safe = safeReturnTo(value);
+  if (!safe) return "";
+  const params = new URLSearchParams(safe.split("?")[1] ?? "");
+  return params.get("ticket") ?? "";
+}
+
 function VerifyOtp() {
-  const { email, challenge } = Route.useSearch();
+  const { email, challenge, returnTo } = Route.useSearch();
   const nav = useNavigate();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -30,7 +42,17 @@ function VerifyOtp() {
       setToken(result.access_token);
       const user = await refreshUser();
       toast.success("Verified");
-      nav({ to: user.role === "admin" ? "/admin" : "/report" });
+      const safeTarget = safeReturnTo(returnTo);
+      const ticket = ticketFromReportLink(safeTarget);
+      if (user.role === "admin" && ticket) {
+        nav({ to: "/admin/$id", params: { id: ticket } });
+      } else if (user.role === "admin") {
+        nav({ to: "/admin" });
+      } else if (safeTarget) {
+        nav({ to: safeTarget });
+      } else {
+        nav({ to: "/report" });
+      }
     } catch (err: any) {
       toast.error(err.message ?? "Invalid code");
     } finally {

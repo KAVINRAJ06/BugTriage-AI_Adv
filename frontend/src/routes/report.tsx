@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -23,11 +23,6 @@ import {
 } from "@/lib/api";
 
 export const Route = createFileRoute("/report")({
-  beforeLoad: () => {
-    if (typeof window !== "undefined" && !isAuthed()) {
-      throw redirect({ to: "/login" });
-    }
-  },
   validateSearch: (s: Record<string, unknown>) => ({ ticket: String(s.ticket ?? "") }),
   component: Report,
 });
@@ -75,13 +70,21 @@ function Report() {
 
   useEffect(() => {
     if (!authed) {
-      nav({ to: "/login", replace: true });
+      nav({
+        to: "/login",
+        search: { returnTo: ticket ? `/report?ticket=${encodeURIComponent(ticket)}` : "/report" },
+        replace: true,
+      });
       return;
     }
     if (me.data?.role === "admin") {
-      nav({ to: "/admin", replace: true });
+      if (ticket) {
+        nav({ to: "/admin/$id", params: { id: ticket }, replace: true });
+      } else {
+        nav({ to: "/admin", replace: true });
+      }
     }
-  }, [authed, me.data?.role, nav]);
+  }, [authed, me.data?.role, nav, ticket]);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -141,7 +144,11 @@ function Report() {
           <p className="mt-2 text-sm text-muted-foreground">
             Reporter ticket links are private. Sign in with the reporter account that submitted the bug.
           </p>
-          <Link to="/login" className="mint-btn mt-5 inline-flex">
+          <Link
+            to="/login"
+            search={{ returnTo: ticket ? `/report?ticket=${encodeURIComponent(ticket)}` : "/report" }}
+            className="mint-btn mt-5 inline-flex"
+          >
             Sign in
           </Link>
         </div>
